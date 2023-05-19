@@ -40,7 +40,7 @@ export class PolygonService {
     this.iftContract = new ethers.Contract(this.networkInfo.iftAddress, erc721abi, this.polygonProvider);
     this.psbtContract = new ethers.Contract(this.networkInfo.psbtAddress, erc721abi, this.polygonProvider);
 
-    // this.GFT = new Token(this.networkInfo.polygonChainId, this.networkInfo.gftAddress, 18, 'GFT', 'ITSBLOC');
+    // this.GFT = new Token(this.networkInfo.polygonChainId, this.networkInfo.gftAddress, 18, 'GFT', 'gft');
     this.ownerInfo = configService.get('ownerInfo');
   }
   async getBalance() {
@@ -107,37 +107,6 @@ export class PolygonService {
         })
         .catch((e) => {
           console.log('sendSignedTransaction catch', e.toString());
-          // if (nftTxHistoryId) {
-          //   console.log(`${getCurDateString()} sendNftTx:: nftTxHistoryId: ${nftTxHistoryId}, log: ${e.toString()}`);
-          //   const receiptErrorLog = 'check for transaction receipt';
-          //   if (e.toString().includes(receiptErrorLog)) {
-          //     const statusChangeUrl = `${this.valableEndpoint}/api/nft/tx/status-change`;
-          //     console.log(`${getCurDateString()} sendNftTx2:: nftTxHistoryId: ${nftTxHistoryId}, txHash: ${signedTx.transactionHash}`);
-          //     sendPatchRequest(statusChangeUrl, {
-          //       nftTxHistoryId,
-          //       txHash: signedTx.transactionHash,
-          //     }, this.insideApiKey);
-          //   } else {
-          //     const statusFailUrl = `${this.valableEndpoint}/api/nft/tx/status-fail`;
-          //     let message = e.toString();
-          //     let errorCode = ErrorCode.transactionFail;
-          //     if (message.includes('transaction underpriced') || message.includes('already known') || message.includes('nonce too low')) {
-          //       message = ErrorMessage.nonceDuplicate;
-          //       errorCode = ErrorCode.nonceDuplicate;
-          //     } else if (message.includes('not token owner')) {
-          //       message = ErrorMessage.isNotTokenOwner;
-          //       errorCode = ErrorCode.isNotTokenOwner;
-          //     }
-          //     sendPatchRequest(statusFailUrl, {
-          //       nftTxHistoryId,
-          //       log: e.toString(),
-          //       message,
-          //       errorCode,
-          //     }, this.insideApiKey)
-          //       .then((res) => console.log(`${statusFailUrl} sendNftTx::sendPatchRequest:: request result: ${res.statusCode}`))
-          //       .catch((e) => console.log(`${statusFailUrl} sendNftTx::sendPatchRequest:: request error: ${e.toString()}`));
-          //   }
-          // }
         });
       return signedTx.transactionHash;
     } catch (e) {
