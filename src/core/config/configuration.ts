@@ -9,7 +9,7 @@ export default () => {
     if (fs.existsSync(envPath)) {
       data = dotenv.parse(fs.readFileSync(envPath));
     }
-    return {
+    const envs = {
       serverPort: parseInt(data.SERVER_PORT, 10),
       networkInfo: {
         polygonNetwork: data.POLYGON_NETWORK,
@@ -19,7 +19,12 @@ export default () => {
         iftAddress: data.IFT_ADDRESS,
         psbtAddress: data.PSBT_ADDRESS,
       },
+      ownerInfo: {
+        ownerAddress: data.OWNER_ADDRESS,
+        ownerPriv: data.OWNER_PRIV,
+      },
     };
+    return envs;
   } catch (e) {
     console.log(`Configuration error: ${e.toString()}`);
   }

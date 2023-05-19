@@ -5,6 +5,9 @@ import { createAlchemyWeb3 } from '@alch/alchemy-web3';
 import * as path from 'path';
 import * as fs from 'fs';
 import { Token } from 'quickswap-sdk';
+import { getCurDateString } from '../../../core/utils/utils';
+import { SymbolName } from "../../../core/common/common.enums";
+import { MintInput } from "./dto/polygon.dto";
 
 @Injectable()
 export class PolygonService {
@@ -18,6 +21,7 @@ export class PolygonService {
   private readonly GFT: Token;
   private readonly IFT: Token;
   private readonly PSBT: Token;
+  private readonly ownerInfo: any;
   constructor(private readonly configService: ConfigService) {
     this.networkInfo = configService.get('networkInfo');
     this.polygonProvider = new ethers.providers.JsonRpcProvider(
@@ -26,7 +30,7 @@ export class PolygonService {
     this.alchWeb3 = createAlchemyWeb3(this.networkInfo.polygonNodeUrl);
 
     const erc721JsonPath = path.join('src/abis/ERC721.json');
-    if (!fs.existsSync(erc721JsonPath)) {
+    if (!fs.existsSync(erc721JsonPath)) {``
       console.log(`${erc721JsonPath} does not exist.`);
     }
     const { abi: erc721abi } = JSON.parse(fs.readFileSync(erc721JsonPath).toString());
@@ -37,6 +41,7 @@ export class PolygonService {
     this.psbtContract = new ethers.Contract(this.networkInfo.psbtAddress, erc721abi, this.polygonProvider);
 
     // this.GFT = new Token(this.networkInfo.polygonChainId, this.networkInfo.gftAddress, 18, 'GFT', 'ITSBLOC');
+    this.ownerInfo = configService.get('ownerInfo');
   }
   async getBalance() {
     const gftName = await this.gftContract.name();
@@ -48,5 +53,110 @@ export class PolygonService {
     psbtName: ${psbtName}
     `);
     return { value: 123 };
+  }
+  async mint({ symbol, recipient }: MintInput) {
+    console.log(`==== NFT Mint start: ${getCurDateString()} ====`);
+    const from = this.ownerInfo.ownerAddress;
+    const privateKey = this.ownerInfo.ownerPriv;
+
+    const valueBN = BigNumber.from(0);
+    const data = this.erc721Iface.encodeFunctionData('mint', [recipient]);
+    let txHash = '';
+    // GFT
+    if (symbol === SymbolName.GFT) {
+      txHash = await this.sendNftTx(this.alchWeb3, from, this.networkInfo.gftAddress, privateKey, valueBN, data);
+    }
+    // IFT
+    else if (symbol === SymbolName.IFT) {
+      txHash = await this.sendNftTx(this.alchWeb3, from, this.networkInfo.iftAddress, privateKey, valueBN, data);
+    }
+    // PSBT
+    else if (symbol === SymbolName.PSBT) {
+      txHash = await this.sendNftTx(this.alchWeb3, from, this.networkInfo.psbtAddress, privateKey, valueBN, data);
+    } else {
+      console.log(`symbol(${symbol}) does not supported`);
+    }
+    return { txHash };
+  }
+
+  async sendNftTx(web3, from, to, priv, valueBN, data) {
+    try {
+      const estimatedGas = await web3.eth.estimateGas({ from, to, value: valueBN.toString(), data });
+      const price = await web3.eth.getMaxPriorityFeePerGas();
+
+      const addTip50gwei = ethers.utils.parseUnits('50', 'gwei');
+      const addedPrice = BigNumber.from(price).add(addTip50gwei);
+      console.log(`estimatedGas: ${estimatedGas + 20_000}, maxPriorityFeePerGas: ${ethers.utils.formatUnits(price, 'gwei')} gwei, addedPrice: ${ethers.utils.formatUnits(addedPrice, 'gwei')} gwei, value: ${ethers.utils.formatEther(valueBN)} MATIC`);
+      const fields = {
+        type: 2,
+        gas: estimatedGas + 20_000,
+        maxPriorityFeePerGas: addedPrice.toString(),
+        from,
+        to,
+        value: valueBN.toString(),
+        data,
+      };
+      console.log('field:', fields);
+
+      const signedTx = await this.signTx(web3, from, priv, fields);
+      console.log('txHash:', signedTx.transactionHash);
+      web3.eth.sendSignedTransaction(signedTx.rawTransaction)
+        .then((res) => {
+          console.log(`${getCurDateString()} sendNftTx:: txHash: ${res.transactionHash}, gasUsded: ${res.gasUsed}, status: ${res.status}`);
+          console.log(`==== NFT Mint end  : ${getCurDateString()} ====`);
+        })
+        .catch((e) => {
+          console.log('sendSignedTransaction catch', e.toString());
+          // if (nftTxHistoryId) {
+          //   console.log(`${getCurDateString()} sendNftTx:: nftTxHistoryId: ${nftTxHistoryId}, log: ${e.toString()}`);
+          //   const receiptErrorLog = 'check for transaction receipt';
+          //   if (e.toString().includes(receiptErrorLog)) {
+          //     const statusChangeUrl = `${this.valableEndpoint}/api/nft/tx/status-change`;
+          //     console.log(`${getCurDateString()} sendNftTx2:: nftTxHistoryId: ${nftTxHistoryId}, txHash: ${signedTx.transactionHash}`);
+          //     sendPatchRequest(statusChangeUrl, {
+          //       nftTxHistoryId,
+          //       txHash: signedTx.transactionHash,
+          //     }, this.insideApiKey);
+          //   } else {
+          //     const statusFailUrl = `${this.valableEndpoint}/api/nft/tx/status-fail`;
+          //     let message = e.toString();
+          //     let errorCode = ErrorCode.transactionFail;
+          //     if (message.includes('transaction underpriced') || message.includes('already known') || message.includes('nonce too low')) {
+          //       message = ErrorMessage.nonceDuplicate;
+          //       errorCode = ErrorCode.nonceDuplicate;
+          //     } else if (message.includes('not token owner')) {
+          //       message = ErrorMessage.isNotTokenOwner;
+          //       errorCode = ErrorCode.isNotTokenOwner;
+          //     }
+          //     sendPatchRequest(statusFailUrl, {
+          //       nftTxHistoryId,
+          //       log: e.toString(),
+          //       message,
+          //       errorCode,
+          //     }, this.insideApiKey)
+          //       .then((res) => console.log(`${statusFailUrl} sendNftTx::sendPatchRequest:: request result: ${res.statusCode}`))
+          //       .catch((e) => console.log(`${statusFailUrl} sendNftTx::sendPatchRequest:: request error: ${e.toString()}`));
+          //   }
+          // }
+        });
+      return signedTx.transactionHash;
+    } catch (e) {
+      console.log(e.toString());
+      throw e;
+    }
+  }
+  async signTx(web3, from, priv, fields = {}) {
+    try {
+      const nonce = await web3.eth.getTransactionCount(from, 'latest');
+      console.log(`nonce: ${nonce.toString(10)}`);
+      const transaction = {
+        nonce: nonce,
+        ...fields,
+      };
+      return await web3.eth.accounts.signTransaction(transaction, priv);
+    } catch (e) {
+      console.log(e.toString());
+      throw e;
+    }
   }
 }
