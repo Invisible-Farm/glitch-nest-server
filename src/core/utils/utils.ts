@@ -13,12 +13,12 @@ export const getCurDate = () => {
 export const getCurDateString = (): string => {
   return dayjs().tz().format('YYYY-MM-DD HH:mm:ss.SSS').toString();
 };
-export const sendPatchRequest = async (url: string, params: any, apiKey?: string) => {
+export const sendPatchRequest = async (url: string, params: any) => {
   try {
     const response = await axios.patch(
       url,
       params,
-      { headers: { 'Content-Type': 'application/json', 'insideApiKey': apiKey },
+      { headers: { 'Content-Type': 'application/json' },
       });
     if (response.status !== 200) {
       throw new Error(`this status is not 200. (status: ${response.status}, message: ${response.statusText})`);
