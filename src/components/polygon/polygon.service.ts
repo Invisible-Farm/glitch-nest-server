@@ -110,7 +110,7 @@ export class PolygonService {
               break;
             }
           }
-          const statusChangeUrl = `http://1.234.5.209:10010/api/status-change`;
+          const statusChangeUrl = `http://1.234.5.209:10010/polygon/mint`;
           const mintResultOutput: MintResultOutput = {
             fileInfoId,
             tokenId,
