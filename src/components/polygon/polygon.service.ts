@@ -5,7 +5,7 @@ import { createAlchemyWeb3 } from '@alch/alchemy-web3';
 import * as path from 'path';
 import * as fs from 'fs';
 import { Token } from 'quickswap-sdk';
-import { getCurDateString, sendPatchRequest } from "../../core/utils/utils";
+import { getCurDateString, sendPostRequest2 } from "../../core/utils/utils";
 import { SymbolName } from '../../core/common/common.enums';
 import { MintInput, MintResultOutput } from "./dto/polygon.dto";
 
@@ -117,7 +117,7 @@ export class PolygonService {
             txHash: signedTx.transactionHash,
             symbol,
           };
-          sendPatchRequest(statusChangeUrl, mintResultOutput);
+          sendPostRequest2(statusChangeUrl, mintResultOutput);
           console.log(`==== NFT Mint end  : ${getCurDateString()} ====`);
         })
         .catch((e) => {

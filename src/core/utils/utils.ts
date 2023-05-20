@@ -13,9 +13,9 @@ export const getCurDate = () => {
 export const getCurDateString = (): string => {
   return dayjs().tz().format('YYYY-MM-DD HH:mm:ss.SSS').toString();
 };
-export const sendPatchRequest = async (url: string, params: any) => {
+export const sendPostRequest2 = async (url: string, params: any) => {
   try {
-    const response = await axios.patch(
+    const response = await axios.post(
       url,
       params,
       { headers: { 'Content-Type': 'application/json' },
