@@ -1,4 +1,4 @@
-## glitch-frontend
+## glitch-nest-server
 This server is implemented based on nest js. 
 
 The transaction received as a user is minted from the admin.
