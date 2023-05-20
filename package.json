@@ -21,19 +21,20 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@alch/alchemy-web3": "^1.4.2",
+    "@iden3/js-iden3-auth": "^1.0.0-beta.7",
     "@nestjs/common": "^8.0.0",
+    "@nestjs/config": "^1.2.0",
     "@nestjs/core": "^8.0.0",
     "@nestjs/platform-express": "^8.0.0",
-    "reflect-metadata": "^0.1.13",
-    "rimraf": "^3.0.2",
-    "rxjs": "^7.2.0",
+    "axios": "^0.26.1",
+    "dayjs": "^1.10.8",
     "dotenv": "^16.0.0",
     "ethers": "^5.6.2",
-    "dayjs": "^1.10.8",
-    "axios": "^0.26.1",
-    "@alch/alchemy-web3": "^1.4.2",
-    "@nestjs/config": "^1.2.0",
-    "quickswap-sdk": "^3.0.8"
+    "quickswap-sdk": "^3.0.8",
+    "reflect-metadata": "^0.1.13",
+    "rimraf": "^3.0.2",
+    "rxjs": "^7.2.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^8.0.0",

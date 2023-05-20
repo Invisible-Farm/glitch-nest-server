@@ -5,9 +5,9 @@ import { createAlchemyWeb3 } from '@alch/alchemy-web3';
 import * as path from 'path';
 import * as fs from 'fs';
 import { Token } from 'quickswap-sdk';
-import { getCurDateString } from '../../../core/utils/utils';
-import { SymbolName } from "../../../core/common/common.enums";
-import { MintInput } from "./dto/polygon.dto";
+import { getCurDateString, sendPatchRequest } from "../../core/utils/utils";
+import { SymbolName } from '../../core/common/common.enums';
+import { MintInput, MintResultOutput } from "./dto/polygon.dto";
 
 @Injectable()
 export class PolygonService {
@@ -30,7 +30,7 @@ export class PolygonService {
     this.alchWeb3 = createAlchemyWeb3(this.networkInfo.polygonNodeUrl);
 
     const erc721JsonPath = path.join('src/abis/ERC721.json');
-    if (!fs.existsSync(erc721JsonPath)) {``
+    if (!fs.existsSync(erc721JsonPath)) {
       console.log(`${erc721JsonPath} does not exist.`);
     }
     const { abi: erc721abi } = JSON.parse(fs.readFileSync(erc721JsonPath).toString());
@@ -54,7 +54,7 @@ export class PolygonService {
     `);
     return { value: 123 };
   }
-  async mint({ symbol, recipient }: MintInput) {
+  async mint({ fileInfoId, symbol, recipient }: MintInput) {
     console.log(`==== NFT Mint start: ${getCurDateString()} ====`);
     const from = this.ownerInfo.ownerAddress;
     const privateKey = this.ownerInfo.ownerPriv;
@@ -64,22 +64,22 @@ export class PolygonService {
     let txHash = '';
     // GFT
     if (symbol === SymbolName.GFT) {
-      txHash = await this.sendNftTx(this.alchWeb3, from, this.networkInfo.gftAddress, privateKey, valueBN, data);
+      txHash = await this.sendNftTx(this.alchWeb3, from, this.networkInfo.gftAddress, privateKey, valueBN, data, fileInfoId, symbol);
     }
     // IFT
     else if (symbol === SymbolName.IFT) {
-      txHash = await this.sendNftTx(this.alchWeb3, from, this.networkInfo.iftAddress, privateKey, valueBN, data);
+      txHash = await this.sendNftTx(this.alchWeb3, from, this.networkInfo.iftAddress, privateKey, valueBN, data, fileInfoId, symbol);
     }
     // PSBT
     else if (symbol === SymbolName.PSBT) {
-      txHash = await this.sendNftTx(this.alchWeb3, from, this.networkInfo.psbtAddress, privateKey, valueBN, data);
+      txHash = await this.sendNftTx(this.alchWeb3, from, this.networkInfo.psbtAddress, privateKey, valueBN, data, fileInfoId, symbol);
     } else {
       console.log(`symbol(${symbol}) does not supported`);
     }
     return { txHash };
   }
 
-  async sendNftTx(web3, from, to, priv, valueBN, data) {
+  async sendNftTx(web3, from, to, priv, valueBN, data, fileInfoId, symbol) {
     try {
       const estimatedGas = await web3.eth.estimateGas({ from, to, value: valueBN.toString(), data });
       const price = await web3.eth.getMaxPriorityFeePerGas();
@@ -102,7 +102,22 @@ export class PolygonService {
       console.log('txHash:', signedTx.transactionHash);
       web3.eth.sendSignedTransaction(signedTx.rawTransaction)
         .then((res) => {
-          console.log(`${getCurDateString()} sendNftTx:: txHash: ${res.transactionHash}, gasUsded: ${res.gasUsed}, status: ${res.status}`);
+          console.log(`${getCurDateString()} sendNftTx:: fileInfoId: ${fileInfoId} txHash: ${res.transactionHash}, gasUsded: ${res.gasUsed}, status: ${res.status}`);
+          let tokenId = '';
+          for (const log of res.logs) {
+            if (log.topics[0] === '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') { // Transfer event
+              tokenId = parseInt(String(Number(log.topics[3]))).toString();
+              break;
+            }
+          }
+          const statusChangeUrl = `http://1.234.5.209:10010/api/status-change`;
+          const mintResultOutput: MintResultOutput = {
+            fileInfoId,
+            tokenId,
+            txHash: signedTx.transactionHash,
+            symbol,
+          };
+          sendPatchRequest(statusChangeUrl, mintResultOutput);
           console.log(`==== NFT Mint end  : ${getCurDateString()} ====`);
         })
         .catch((e) => {
@@ -127,5 +142,8 @@ export class PolygonService {
       console.log(e.toString());
       throw e;
     }
+  }
+  async test() {
+    return { a: 'a' };
   }
 }

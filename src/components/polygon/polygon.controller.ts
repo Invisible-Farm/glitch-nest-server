@@ -15,4 +15,9 @@ export class PolygonController {
   async mint(@Body() mintInput: MintInput) {
     return await this.polygonService.mint(mintInput);
   }
+
+  @Get('test')
+  async test() {
+    return await this.polygonService.test();
+  }
 }
