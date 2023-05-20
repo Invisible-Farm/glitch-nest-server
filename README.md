@@ -36,5 +36,6 @@ Building
 --------
 	npm clean
 	npm install
-    npm run start
+    npm run build
+    pm2 start ecosystem.config.js
 
